@@ -1,0 +1,145 @@
+Recursion is defined as a process which calls itself directly or indirectly (Recursion means that references itself. ) and the corresponding function is called a recursive function.
+
+Recursion in SQL is typically implemented using Common Table Expressions (CTEs) sometime we also use selfjoin for recursion.
+
+This feature is useful for hierarchical data, such as organizational structures or tree structures, where you need to traverse and manipulate data with parent-child relationships.
+
+1. Retrieve a list of employees along with their hierarchy level, starting from the top-level manager 
+
+Ex.
+WITH RECURSIVE EMPLOYEE AS (
+    -- Anchor member: Select the top-level manager
+    SELECT
+        EmployeeID,
+        Name,
+        ManagerID,
+        1 AS Level
+    FROM employees
+    WHERE ManagerID IS NULL
+    
+    UNION ALL
+    
+    -- Recursive member: Select employees reporting to the current level employees
+    SELECT
+        e.EmployeeID,
+        e.Name,
+        e.ManagerID,
+        eh.Level + 1 AS Level
+    FROM employees e
+    INNER JOIN EMPLOYEE eh
+    ON e.ManagerID = eh.EmployeeID
+)
+SELECT * FROM EMPLOYEE;
+
+2. Parent-Child Relationship in Categories (categories table - categoryid, categoryname, categoryparentid)
+
+WITH RECURSIVE CATEGORIES AS (
+    SELECT CategoryID, CategoryName, ParentCategoryID, 1 AS Level
+    FROM categories
+    WHERE ParentCategoryID IS NULL
+    
+    UNION ALL
+    
+    SELECT c.CategoryID, c.CategoryName, c.ParentCategoryID, ch.Level + 1 AS Level
+    FROM categories c
+    INNER JOIN CATEGORIES ch ON c.ParentCategoryID = ch.CategoryID
+)
+SELECT * FROM CATEGORIES;
+
+
+3.Flattening a Product Bill of Materials (BOM)
+
+WITH RECURSIVE MATERIALS AS (
+    SELECT PartID, PartName, ParentPartID, 1 AS Level
+    FROM bom
+    WHERE ParentPartID IS NULL
+    
+    UNION ALL
+    
+    SELECT b.PartID, b.PartName, b.ParentPartID, bh.Level + 1 AS Level
+    FROM bom b
+    INNER JOIN MATERIALS bh ON b.ParentPartID = bh.PartID
+)
+SELECT * FROM MATERIALS;
+
+4. Find all levels of family ancestors using recursion in SQL 
+
+WITH RECURSIVE FAMILIY AS (
+    -- Anchor member: Select the top-level ancestors (people with no parents)
+    SELECT
+        PersonID,
+        Name,
+        ParentID,
+        0 AS Level, -- Level 0 indicates the individual themselves
+        CAST(PersonID AS VARCHAR(255)) AS Ancestors
+    FROM family
+    WHERE ParentID IS NULL
+
+    UNION ALL
+
+    -- Recursive member: Select people and their ancestors
+    SELECT
+        f.PersonID,
+        f.Name,
+        f.ParentID,
+        ah.Level + 1 AS Level,
+        CAST(ah.Ancestors || ' -> ' || f.PersonID AS VARCHAR(255)) AS Ancestors
+    FROM family f
+    INNER JOIN FAMILIY ah ON f.ParentID = ah.PersonID
+)
+SELECT * FROM FAMILIY;
+
+
+
+
+/**
+--1. RETRIEVE A LIST OF EMPLOYEES ALONG WITH THEIR HIERARCHY LEVEL, STARTING FROM THE TOP-LEVEL MANAGER
+CREATE TABLE EMPLOYEE (EMPLOYEEID INT	,NAME	VARCHAR(50),MANAGERID INT)
+INSERT INTO  EMPLOYEE (EMPLOYEEID	,NAME,MANAGERID) VALUES
+(1			,'ALICE',NULL),
+(2			,'BOB',1	),
+(3			,'CHARLIE',1),
+(4			,'DAVE',2	),
+(5			,'EVE',2	),
+(6			,'FRANK',3	)
+
+--2. CATEGORIES TABLE - CATEGORYID, CATEGORYNAME, CATEGORYPARENTID
+CREATE TABLE CATEGORIES (CATEGORYID INT	,CATEGORYNAME	VARCHAR(50),PARENTCATEGORYID INT)
+INSERT INTO CATEGORIES (CATEGORYID	,CATEGORYNAME	,PARENTCATEGORYID) VALUES
+(1			,'ELECTRONICS'	,	NULL),
+(2			,'COMPUTERS	'	,1		),
+(3			,'LAPTOPS	'   , 	2	),
+(4			,'DESKTOPS	'	,2		),
+(5			,'TABLETS	'   , 	1	)
+
+--3. FLATTENING A PRODUCT BILL OF MATERIALS (BOM)
+CREATE TABLE MATERIALS (PARTID INT	,PARTNAME	VARCHAR(50),PARENTPARTID INT)
+INSERT INTO MATERIALS (PARTID,	PARTNAME,	PARENTPARTID) VALUES
+(1		,'CAR'	,    NULL),
+(2		,'ENGINE'	,1	 ),
+(3		,'WHEEL'	,1	 ),
+(4		,'PISTON'	,2	 ),
+(5		,'BOLT'	,4	  )
+
+--4. FIND ALL LEVELS OF FAMILY ANCESTORS USING RECURSION IN SQL
+CREATE TABLE FAMILIY (PERSONID INT	,NAME	VARCHAR(50),PARENTID INT)
+INSERT INTO FAMILIY (PERSONID,	NAME,	PARENTID) VALUES
+(1,			'JOHN',NULL),
+(2,			'MICHAEL',1 ),
+(3,			'SARAH',1 ),
+(4,			'JAMES',2),
+(5,			'EMMA',2	 ),
+(6,			'DANIEL',3	 ),
+(7,			'SOPHIA',4	 )
+
+--OUTPUT :
+PERSONID	NAME	PARENTID	LEVEL	ANCESTORS
+1			JOHN	NULL				1
+2			MICHAEL	1			1		1 -> 2
+3			SARAH	1			1		1 -> 3
+4			JAMES	2			2		1 -> 2 -> 4
+5			EMMA	2			2		1 -> 2 -> 5
+6			DANIEL	3			2		1 -> 3 -> 6
+7			SOPHIA	4			3		1 -> 2 -> 4 -> 7
+
+**/
