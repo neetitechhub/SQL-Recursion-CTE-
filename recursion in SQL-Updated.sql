@@ -68,7 +68,8 @@ WITH EmployeeHierarchy  AS (
         EMPLOYEEID,
         NAME,
         MANAGERID,
-        1 AS LEVEL
+        0 AS LEVEL,
+		CAST(EMPLOYEEID AS VARCHAR(255)) AS EmpHierarchy
     FROM EMPLOYEE
     WHERE MANAGERID IS NULL
     
@@ -79,7 +80,8 @@ WITH EmployeeHierarchy  AS (
         E.EMPLOYEEID,
         E.NAME,
         E.MANAGERID,
-        EH.LEVEL + 1 AS LEVEL
+        EH.LEVEL + 1 AS LEVEL,
+		CAST((CAST(EH.EmpHierarchy AS VARCHAR(255)) + ' -> ' + CAST(E.EMPLOYEEID AS VARCHAR(255))) AS VARCHAR(255)) AS ANCESTORS
     FROM EMPLOYEE E
     INNER JOIN EmployeeHierarchy  EH
     ON E.MANAGERID = EH.EMPLOYEEID
